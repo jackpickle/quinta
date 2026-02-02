@@ -1,0 +1,75 @@
+{
+  "rules": {
+    "rooms": {
+      "$roomCode": {
+        ".read": true,
+        ".write": true,
+
+        "roomId": {
+          ".validate": "newData.isString() && newData.val() == $roomCode"
+        },
+
+        "status": {
+          ".validate": "newData.isString() && (newData.val() == 'waiting' || newData.val() == 'playing' || newData.val() == 'finished')"
+        },
+
+        "createdAt": {
+          ".validate": "newData.isNumber()"
+        },
+
+        "settings": {
+          ".validate": "newData.hasChildren(['handSize', 'winLength', 'maxPlayers'])"
+        },
+
+        "players": {
+          ".validate": "newData.exists()"
+        },
+
+        "board": {
+          ".validate": "newData.exists()"
+        },
+
+        "currentPlayerIndex": {
+          ".validate": "newData.isNumber() && newData.val() >= 0"
+        },
+
+        "winner": {
+          ".validate": "newData.val() == null || newData.isString()"
+        },
+
+        "deck": {
+          ".validate": "newData.exists()"
+        },
+
+        "discardPile": {
+          ".validate": "newData.exists()"
+        },
+
+        "privateHands": {
+          "$playerId": {
+            ".read": true,
+            ".write": true,
+
+            "hand": {
+              ".validate": "newData.exists()"
+            }
+          }
+        },
+
+        "presence": {
+          "$playerId": {
+            ".read": true,
+            ".write": true,
+
+            "online": {
+              ".validate": "newData.isBoolean()"
+            },
+            "lastSeen": {
+              ".validate": "newData.isNumber()"
+            }
+          }
+        }
+      }
+    }
+  }
+}
