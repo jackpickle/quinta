@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { cn } from "@/lib/utils";
-import type { GameSettings } from "@/types/game";
+import type { GameSettings, BoardPattern } from "@/types/game";
 
 interface SettingRowProps {
   label: string;
@@ -125,6 +125,28 @@ export function SettingsPanel({
             type="boolean"
             disabled={disabled}
           />
+          <div className="flex justify-between items-center py-2 border-b border-wood last:border-b-0">
+            <span className="text-sm">Board Layout</span>
+            <div className="flex items-center gap-1">
+              {(["spiral", "snake", "normal"] as BoardPattern[]).map(
+                (pattern) => (
+                  <button
+                    key={pattern}
+                    onClick={() => onChange({ boardPattern: pattern })}
+                    disabled={disabled}
+                    className={cn(
+                      "px-2 py-1 rounded text-xs capitalize",
+                      settings.boardPattern === pattern
+                        ? "bg-terracotta text-cream font-medium"
+                        : "bg-cream border border-wood-dark hover:bg-wood disabled:opacity-50"
+                    )}
+                  >
+                    {pattern}
+                  </button>
+                )
+              )}
+            </div>
+          </div>
         </div>
       )}
     </div>

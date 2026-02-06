@@ -7,7 +7,7 @@ export * from './turn';
 
 // Export a game initializer
 import { GameState, GameSettings, Player, PlayerId, ChipColor } from '@/types';
-import { generateSpiralBoard } from './board';
+import { generateBoard } from './board';
 import { generateDeck, shuffleDeck, dealCards } from './deck';
 
 /**
@@ -27,7 +27,8 @@ export function createNewGame(
     handSize: 5,
     winLength: 5,
     drawOnHigher: false,
-    maxPlayers: 6
+    maxPlayers: 6,
+    boardPattern: 'spiral' as const
   };
 
   const settings = { ...defaultSettings, ...customSettings };
@@ -45,7 +46,7 @@ export function createNewGame(
   }));
 
   // Generate board
-  const board = generateSpiralBoard();
+  const board = generateBoard(settings.boardPattern);
 
   // Create initial game state
   const gameState: GameState = {

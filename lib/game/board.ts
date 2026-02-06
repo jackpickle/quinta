@@ -1,4 +1,4 @@
-import { BoardCell } from '@/types';
+import { BoardCell, BoardPattern } from '@/types';
 
 /**
  * Generate the spiral board layout (0-99)
@@ -79,6 +79,84 @@ export function generateSpiralBoard(): BoardCell[][] {
   }
 
   return board;
+}
+
+/**
+ * Generate a snake (boustrophedon) board layout (0-99)
+ * Even rows go left-to-right, odd rows go right-to-left
+ *
+ * Pattern:
+ *  0  1  2  3  4  5  6  7  8  9
+ * 19 18 17 16 15 14 13 12 11 10
+ * 20 21 22 23 24 25 26 27 28 29
+ * 39 38 37 36 35 34 33 32 31 30
+ * ...
+ */
+export function generateSnakeBoard(): BoardCell[][] {
+  const size = 10;
+  const board: BoardCell[][] = [];
+  let num = 0;
+
+  for (let row = 0; row < size; row++) {
+    const rowCells: BoardCell[] = [];
+    for (let col = 0; col < size; col++) {
+      const actualCol = row % 2 === 0 ? col : size - 1 - col;
+      rowCells.push({
+        number: num,
+        chip: null,
+        position: { row, col: actualCol }
+      });
+      num++;
+    }
+    // Sort by actual column so board array is in grid order
+    rowCells.sort((a, b) => a.position.col - b.position.col);
+    board.push(rowCells);
+  }
+
+  return board;
+}
+
+/**
+ * Generate a normal (sequential) board layout (0-99)
+ * All rows go left-to-right, top-to-bottom
+ *
+ * Pattern:
+ *  0  1  2  3  4  5  6  7  8  9
+ * 10 11 12 13 14 15 16 17 18 19
+ * 20 21 22 23 24 25 26 27 28 29
+ * ...
+ */
+export function generateNormalBoard(): BoardCell[][] {
+  const size = 10;
+  const board: BoardCell[][] = [];
+  let num = 0;
+
+  for (let row = 0; row < size; row++) {
+    const rowCells: BoardCell[] = [];
+    for (let col = 0; col < size; col++) {
+      rowCells.push({
+        number: num,
+        chip: null,
+        position: { row, col }
+      });
+      num++;
+    }
+    board.push(rowCells);
+  }
+
+  return board;
+}
+
+/**
+ * Generate a board based on the selected pattern
+ */
+export function generateBoard(pattern: BoardPattern): BoardCell[][] {
+  switch (pattern) {
+    case 'snake': return generateSnakeBoard();
+    case 'normal': return generateNormalBoard();
+    case 'spiral':
+    default: return generateSpiralBoard();
+  }
 }
 
 /**

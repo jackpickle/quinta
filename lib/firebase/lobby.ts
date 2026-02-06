@@ -52,7 +52,8 @@ export async function createLobby(
     handSize: 5,
     winLength: 5,
     drawOnHigher: false,
-    maxPlayers: 6
+    maxPlayers: 6,
+    boardPattern: 'spiral'
   };
 
   const settings = { ...defaultSettings, ...customSettings };

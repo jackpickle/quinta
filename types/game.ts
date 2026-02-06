@@ -45,10 +45,12 @@ export type GameStatus =
   | 'playing'  // game in progress
   | 'finished'; // game over
 
-export type TurnAction = 
+export type TurnAction =
   | 'natural'  // place on exact match, draw card
   | 'higher'   // place on higher number, no draw
   | 'pass';    // skip placement, draw card
+
+export type BoardPattern = 'spiral' | 'snake' | 'normal';
 
 export interface GameSettings {
   allowChipOverride: boolean; // can place on occupied spaces?
@@ -58,6 +60,7 @@ export interface GameSettings {
   winLength: number; // 4, 5, or 6
   drawOnHigher: boolean; // draw card after Higher play?
   maxPlayers: number; // 2-6
+  boardPattern: BoardPattern; // spiral, snake, or normal
 }
 
 export interface GameState {
