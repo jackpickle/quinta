@@ -11,6 +11,7 @@ interface WinScreenProps {
   isWinner: boolean;
   onPlayAgain: () => void;
   onNewGame: () => void;
+  teamMembers?: Player[];
 }
 
 export function WinScreen({
@@ -20,8 +21,13 @@ export function WinScreen({
   isWinner,
   onPlayAgain,
   onNewGame,
+  teamMembers,
 }: WinScreenProps) {
   const winnerColor = `var(--chip-${winner.color})`;
+  const isTeamWin = teamMembers && teamMembers.length > 1;
+  const winLabel = isTeamWin
+    ? `${teamMembers.map((p) => p.name).join(" & ")} win!`
+    : `${winner.name} wins!`;
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-6 text-center">
@@ -32,7 +38,7 @@ export function WinScreen({
         >
           <Chip color={winner.color} size="lg" />
           <span className="font-[family-name:var(--font-fraunces)] text-2xl font-medium">
-            {winner.name} wins!
+            {winLabel}
           </span>
         </div>
 

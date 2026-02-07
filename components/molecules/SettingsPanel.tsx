@@ -69,12 +69,14 @@ interface SettingsPanelProps {
   settings: GameSettings;
   onChange: (settings: Partial<GameSettings>) => void;
   disabled?: boolean;
+  playerCount?: number;
 }
 
 export function SettingsPanel({
   settings,
   onChange,
   disabled,
+  playerCount = 0,
 }: SettingsPanelProps) {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -146,6 +148,24 @@ export function SettingsPanel({
                 )
               )}
             </div>
+          </div>
+          <div className="flex justify-between items-center py-2 border-b border-wood last:border-b-0">
+            <span className="text-sm">
+              Teams
+              {playerCount < 4 && (
+                <span className="text-xs text-brown-light ml-1">(4+ players)</span>
+              )}
+            </span>
+            <label className="cursor-pointer">
+              <input
+                type="checkbox"
+                checked={settings.teamsEnabled}
+                onChange={(e) => onChange({ teamsEnabled: e.target.checked })}
+                disabled={disabled || playerCount < 4}
+                className="mr-1"
+              />
+              {settings.teamsEnabled ? "On" : "Off"}
+            </label>
           </div>
         </div>
       )}

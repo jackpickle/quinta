@@ -1,4 +1,4 @@
-import { BoardCell, WinningLine, PlayerId } from '@/types';
+import { BoardCell, WinningLine, PlayerId, ChipColor } from '@/types';
 
 /**
  * Check if a player has won (5 in a row)
@@ -116,7 +116,9 @@ function checkDiagonals(
 }
 
 /**
- * Check if a line of cells belongs to the same player
+ * Check if a line of cells all share the same chip color.
+ * Works for both FFA (unique colors per player) and teams (shared color per team).
+ * Returns the playerId of the first chip's owner so the caller can identify the winner.
  */
 function checkLine(cells: BoardCell[]): PlayerId | null {
   // All cells must have chips
@@ -124,11 +126,11 @@ function checkLine(cells: BoardCell[]): PlayerId | null {
     return null;
   }
 
-  // All chips must belong to the same player
-  const firstPlayerId = cells[0].chip!.playerId;
-  const allSamePlayer = cells.every(cell => cell.chip?.playerId === firstPlayerId);
+  // All chips must share the same color
+  const firstColor: ChipColor = cells[0].chip!.color;
+  const allSameColor = cells.every(cell => cell.chip?.color === firstColor);
 
-  return allSamePlayer ? firstPlayerId : null;
+  return allSameColor ? cells[0].chip!.playerId : null;
 }
 
 /**

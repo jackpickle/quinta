@@ -9,7 +9,40 @@ interface ScoreDisplayProps {
 }
 
 export function ScoreDisplay({ players, board }: ScoreDisplayProps) {
-  // Count chips for each player
+  const teamsEnabled = players.some((p) => p.teamIndex !== undefined);
+
+  if (teamsEnabled) {
+    // Aggregate chip counts by color (team)
+    const colorCounts: Record<string, number> = {};
+    board.flat().forEach((cell) => {
+      if (cell.chip) {
+        colorCounts[cell.chip.color] = (colorCounts[cell.chip.color] || 0) + 1;
+      }
+    });
+
+    // Get unique team colors (preserve order)
+    const seenColors = new Set<ChipColor>();
+    const teamEntries: { color: ChipColor; count: number }[] = [];
+    for (const player of players) {
+      if (!seenColors.has(player.color)) {
+        seenColors.add(player.color);
+        teamEntries.push({ color: player.color, count: colorCounts[player.color] || 0 });
+      }
+    }
+
+    return (
+      <div className="flex gap-2 md:gap-4">
+        {teamEntries.map((entry) => (
+          <div key={entry.color} className="flex items-center gap-1 text-xs">
+            <Chip color={entry.color} size="xs" />
+            <span className="font-medium">{entry.count}</span>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  // FFA mode: count per player
   const chipCounts = players.reduce(
     (acc, player) => {
       acc[player.id] = 0;
@@ -18,7 +51,6 @@ export function ScoreDisplay({ players, board }: ScoreDisplayProps) {
     {} as Record<string, number>
   );
 
-  // Flatten board and count chips
   board.flat().forEach((cell) => {
     if (cell.chip) {
       chipCounts[cell.chip.playerId]++;

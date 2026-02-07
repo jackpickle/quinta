@@ -206,15 +206,61 @@ function handleDrawCard(
 }
 
 /**
- * Advance to the next player
+ * Advance to the next player.
+ * Uses turnOrder array if present (team mode), otherwise sequential.
  */
 function advanceToNextPlayer(gameState: GameState): GameState {
+  if (gameState.turnOrder && gameState.turnOrder.length > 0) {
+    // Team mode: find current position in turnOrder and advance
+    const currentPos = gameState.turnOrder.indexOf(gameState.currentPlayerIndex);
+    const nextPos = (currentPos + 1) % gameState.turnOrder.length;
+    return {
+      ...gameState,
+      currentPlayerIndex: gameState.turnOrder[nextPos]
+    };
+  }
+
+  // FFA mode: simple sequential
   const nextPlayerIndex = (gameState.currentPlayerIndex + 1) % gameState.players.length;
-  
   return {
     ...gameState,
     currentPlayerIndex: nextPlayerIndex
   };
+}
+
+/**
+ * Build an interleaved turn order for team mode.
+ * Alternates between teams: A1→B1→C1→A2→B2→C2...
+ * Players are provided with their teamIndex already set.
+ */
+export function buildInterleavedTurnOrder(
+  players: Array<{ teamIndex?: number }>
+): number[] {
+  // Group player indices by team
+  const teams: Map<number, number[]> = new Map();
+  players.forEach((p, idx) => {
+    const team = p.teamIndex ?? 0;
+    if (!teams.has(team)) teams.set(team, []);
+    teams.get(team)!.push(idx);
+  });
+
+  // Sort team keys so order is deterministic (team 0, 1, 2)
+  const teamKeys = [...teams.keys()].sort();
+
+  // Interleave: round-robin across teams
+  const turnOrder: number[] = [];
+  const maxTeamSize = Math.max(...[...teams.values()].map(t => t.length));
+
+  for (let round = 0; round < maxTeamSize; round++) {
+    for (const teamKey of teamKeys) {
+      const members = teams.get(teamKey)!;
+      if (round < members.length) {
+        turnOrder.push(members[round]);
+      }
+    }
+  }
+
+  return turnOrder;
 }
 
 /**

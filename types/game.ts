@@ -18,6 +18,7 @@ export interface Player {
   color: ChipColor;
   hand: Card[];
   isHost: boolean;
+  teamIndex?: number; // 0, 1, or 2 when teams enabled
 }
 
 export interface Card {
@@ -61,6 +62,7 @@ export interface GameSettings {
   drawOnHigher: boolean; // draw card after Higher play?
   maxPlayers: number; // 2-6
   boardPattern: BoardPattern; // spiral, snake, or normal
+  teamsEnabled: boolean; // team mode on/off
 }
 
 export interface GameState {
@@ -75,6 +77,7 @@ export interface GameState {
   winner: PlayerId | null;
   createdAt: number; // timestamp
   turnHistory?: TurnHistoryEntry[]; // optional for backwards compatibility
+  turnOrder?: number[]; // interleaved player indices for team mode
 }
 
 // ===========================

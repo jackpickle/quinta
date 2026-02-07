@@ -9,6 +9,7 @@ export * from './turn';
 import { GameState, GameSettings, Player, PlayerId, ChipColor } from '@/types';
 import { generateBoard } from './board';
 import { generateDeck, shuffleDeck, dealCards } from './deck';
+import { buildInterleavedTurnOrder } from './turn';
 
 /**
  * Create a new game with default settings
@@ -28,7 +29,8 @@ export function createNewGame(
     winLength: 5,
     drawOnHigher: false,
     maxPlayers: 6,
-    boardPattern: 'spiral' as const
+    boardPattern: 'spiral' as const,
+    teamsEnabled: false
   };
 
   const settings = { ...defaultSettings, ...customSettings };
@@ -48,6 +50,11 @@ export function createNewGame(
   // Generate board
   const board = generateBoard(settings.boardPattern);
 
+  // Compute interleaved turn order for team mode
+  const turnOrder = settings.teamsEnabled
+    ? buildInterleavedTurnOrder(gamePlayers)
+    : undefined;
+
   // Create initial game state
   const gameState: GameState = {
     roomId,
@@ -55,11 +62,12 @@ export function createNewGame(
     settings,
     board,
     players: gamePlayers,
-    currentPlayerIndex: 0,
+    currentPlayerIndex: turnOrder ? turnOrder[0] : 0,
     deck: remainingDeck,
     discardPile: [],
     winner: null,
-    createdAt: Date.now()
+    createdAt: Date.now(),
+    ...(turnOrder ? { turnOrder } : {})
   };
 
   return gameState;

@@ -19,6 +19,8 @@ export interface LobbyState {
     isReady: boolean;
   }>;
   createdAt: number;
+  teamColors?: (ChipColor | null)[]; // color per team [team0, team1, team2]
+  teams?: Record<string, number>; // playerId → teamIndex
 }
 
 /**
@@ -53,7 +55,8 @@ export async function createLobby(
     winLength: 5,
     drawOnHigher: false,
     maxPlayers: 6,
-    boardPattern: 'spiral'
+    boardPattern: 'spiral',
+    teamsEnabled: false
   };
 
   const settings = { ...defaultSettings, ...customSettings };
@@ -231,26 +234,49 @@ export async function toggleReady(
 /**
  * Check if lobby can start (host only)
  */
-export function canStartGame(lobbyState: LobbyState): { 
-  canStart: boolean; 
-  reason?: string 
+export function canStartGame(lobbyState: LobbyState): {
+  canStart: boolean;
+  reason?: string
 } {
   // Need at least 2 players
   if (lobbyState.players.length < 2) {
     return { canStart: false, reason: 'Need at least 2 players' };
   }
 
-  // All players must have colors
-  const allHaveColors = lobbyState.players.every(p => p.color !== null);
-  if (!allHaveColors) {
-    return { canStart: false, reason: 'All players must select colors' };
+  if (lobbyState.settings.teamsEnabled) {
+    // Team mode validations
+    const teams = lobbyState.teams || {};
+    const allAssigned = lobbyState.players.every(p => teams[p.id] !== undefined);
+    if (!allAssigned) {
+      return { canStart: false, reason: 'All players must be assigned to a team' };
+    }
+
+    // Need at least 2 teams
+    const usedTeams = new Set(Object.values(teams));
+    if (usedTeams.size < 2) {
+      return { canStart: false, reason: 'Need at least 2 teams' };
+    }
+
+    // All used teams must have colors
+    const teamColors = lobbyState.teamColors || [null, null, null];
+    for (const teamIdx of usedTeams) {
+      if (!teamColors[teamIdx]) {
+        return { canStart: false, reason: 'All teams must have colors' };
+      }
+    }
+  } else {
+    // FFA mode: all players must have colors
+    const allHaveColors = lobbyState.players.every(p => p.color !== null);
+    if (!allHaveColors) {
+      return { canStart: false, reason: 'All players must select colors' };
+    }
   }
 
   // All non-host players must be ready
   const allReady = lobbyState.players
     .filter(p => !p.isHost)
     .every(p => p.isReady);
-  
+
   if (!allReady && lobbyState.players.length > 1) {
     return { canStart: false, reason: 'All players must be ready' };
   }
@@ -288,13 +314,26 @@ export async function startGameFromLobby(
       return { success: false, error: startCheck.reason };
     }
 
-    // Convert lobby players to game players (with colors guaranteed)
-    const gamePlayers = lobbyState.players.map(p => ({
-      id: p.id,
-      name: p.name,
-      color: p.color!,
-      isHost: p.isHost
-    }));
+    // Convert lobby players to game players
+    const gamePlayers = lobbyState.players.map(p => {
+      if (lobbyState.settings.teamsEnabled) {
+        const teamIdx = lobbyState.teams?.[p.id] ?? 0;
+        const teamColor = lobbyState.teamColors?.[teamIdx] ?? 'coral';
+        return {
+          id: p.id,
+          name: p.name,
+          color: teamColor as ChipColor,
+          isHost: p.isHost,
+          teamIndex: teamIdx
+        };
+      }
+      return {
+        id: p.id,
+        name: p.name,
+        color: p.color!,
+        isHost: p.isHost
+      };
+    });
 
     // Create game state
     const gameState = createNewGame(
@@ -432,6 +471,71 @@ export async function leaveLobby(
       success: false, 
       error: error instanceof Error ? error.message : 'Unknown error' 
     };
+  }
+}
+
+/**
+ * Assign a player to a team (host only)
+ */
+export async function assignPlayerToTeam(
+  roomCode: string,
+  hostId: PlayerId,
+  targetPlayerId: PlayerId,
+  teamIndex: number | null
+): Promise<{ success: boolean; error?: string }> {
+  const roomRef = ref(database, `rooms/${roomCode}`);
+
+  try {
+    const snapshot = await get(roomRef);
+    if (!snapshot.exists()) return { success: false, error: 'Room not found' };
+
+    const lobbyState = snapshot.val() as LobbyState;
+    const host = lobbyState.players.find(p => p.id === hostId);
+    if (!host?.isHost) return { success: false, error: 'Only host can assign teams' };
+
+    const teams = { ...(lobbyState.teams || {}) };
+    if (teamIndex === null) {
+      delete teams[targetPlayerId];
+    } else {
+      teams[targetPlayerId] = teamIndex;
+    }
+
+    await update(roomRef, { teams });
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+  }
+}
+
+/**
+ * Select a team color (host only)
+ */
+export async function selectTeamColor(
+  roomCode: string,
+  hostId: PlayerId,
+  teamIndex: number,
+  color: ChipColor
+): Promise<{ success: boolean; error?: string }> {
+  const roomRef = ref(database, `rooms/${roomCode}`);
+
+  try {
+    const snapshot = await get(roomRef);
+    if (!snapshot.exists()) return { success: false, error: 'Room not found' };
+
+    const lobbyState = snapshot.val() as LobbyState;
+    const host = lobbyState.players.find(p => p.id === hostId);
+    if (!host?.isHost) return { success: false, error: 'Only host can set team colors' };
+
+    // Check color not used by another team
+    const teamColors = [...(lobbyState.teamColors || [null, null, null])];
+    const otherTeamHasColor = teamColors.some((c, i) => c === color && i !== teamIndex);
+    if (otherTeamHasColor) return { success: false, error: 'Color already used by another team' };
+
+    teamColors[teamIndex] = color;
+    await update(roomRef, { teamColors });
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
   }
 }
 

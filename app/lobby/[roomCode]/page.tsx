@@ -13,6 +13,8 @@ import {
   startGameFromLobby,
   leaveLobby,
   canStartGame,
+  assignPlayerToTeam,
+  selectTeamColor,
 } from "@/lib/firebase/lobby";
 import type { ChipColor, GameSettings } from "@/types/game";
 import { playButtonClick } from "@/lib/sounds";
@@ -78,6 +80,16 @@ export default function LobbyPage() {
     router.push("/");
   };
 
+  const handleAssignPlayerToTeam = async (targetPlayerId: string, teamIndex: number | null) => {
+    playButtonClick();
+    await assignPlayerToTeam(roomCode, playerId, targetPlayerId, teamIndex);
+  };
+
+  const handleSelectTeamColor = async (teamIndex: number, color: ChipColor) => {
+    playButtonClick();
+    await selectTeamColor(roomCode, playerId, teamIndex, color);
+  };
+
   return (
     <LobbyPanel
       roomCode={roomCode}
@@ -91,6 +103,10 @@ export default function LobbyPage() {
       onStartGame={handleStartGame}
       onLeave={handleLeave}
       canStart={canStart}
+      teams={lobbyState.teams}
+      teamColors={lobbyState.teamColors}
+      onAssignPlayerToTeam={handleAssignPlayerToTeam}
+      onSelectTeamColor={handleSelectTeamColor}
     />
   );
 }

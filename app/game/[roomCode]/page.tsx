@@ -151,6 +151,16 @@ export default function GamePage() {
       ? winCheck.winningLine.cells.map((c) => c.number)
       : [];
 
+    // For team wins, find all teammates (same color)
+    const teamMembers = winner && gameState.settings.teamsEnabled
+      ? gameState.players.filter((p) => p.color === winner.color)
+      : undefined;
+
+    // isWinner: in team mode, check if player is on the winning team
+    const isWinner = teamMembers
+      ? teamMembers.some((p) => p.id === playerId)
+      : gameState.winner === playerId;
+
     const handlePlayAgain = async () => {
       await resetToLobby(roomCode);
       router.push(`/lobby/${roomCode}`);
@@ -161,9 +171,10 @@ export default function GamePage() {
         winner={winner!}
         board={gameState.board}
         winningCells={winningCells}
-        isWinner={gameState.winner === playerId}
+        isWinner={isWinner}
         onPlayAgain={handlePlayAgain}
         onNewGame={() => router.push("/")}
+        teamMembers={teamMembers}
       />
     );
   }
