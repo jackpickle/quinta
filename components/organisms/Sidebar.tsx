@@ -8,9 +8,12 @@ interface SidebarProps {
   selectedCardId: string | null;
   onCardSelect: (cardId: string) => void;
   onPass: () => void;
+  onForfeit?: () => void;
   disabled?: boolean;
+  isForfeited?: boolean;
   playerColor?: ChipColor;
   maxCards?: number;
+  consecutiveTimeouts?: number;
 }
 
 export function Sidebar({
@@ -18,10 +21,14 @@ export function Sidebar({
   selectedCardId,
   onCardSelect,
   onPass,
+  onForfeit,
   disabled,
+  isForfeited,
   playerColor = 'coral',
   maxCards = 5,
+  consecutiveTimeouts = 0,
 }: SidebarProps) {
+  const missesLeft = 3 - consecutiveTimeouts;
   return (
     <div className="shrink-0 bg-wood-light px-3 py-2 md:p-4 border-t border-wood md:border-t-0 md:border-l md:w-48 lg:w-52 md:flex md:flex-col md:justify-center">
       <div className="hidden md:block text-xs uppercase tracking-wide text-brown-light text-center mb-2">
@@ -43,12 +50,29 @@ export function Sidebar({
 
         <Button
           onClick={onPass}
-          disabled={disabled}
+          disabled={disabled || isForfeited}
           variant="action"
           className="shrink-0 px-4 md:w-full"
         >
           Pass
         </Button>
+
+        {onForfeit && !isForfeited && (
+          <div className="shrink-0 flex flex-col items-center md:w-full">
+            <Button
+              onClick={onForfeit}
+              variant="action"
+              className="px-4 md:w-full"
+            >
+              Forfeit
+            </Button>
+            {consecutiveTimeouts > 0 && (
+              <span className="text-xs text-amber-600 mt-1">
+                {missesLeft} miss{missesLeft !== 1 ? 'es' : ''} until removed
+              </span>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

@@ -42,7 +42,9 @@ export function WinScreen({
           </span>
         </div>
 
-        <p className="text-brown-light text-sm">5 in a row</p>
+        <p className="text-brown-light text-sm">
+          {winningCells.length > 0 ? `${winningCells.length} in a row` : "Won by forfeit"}
+        </p>
       </div>
 
       <div className="max-w-[300px] w-full mb-8 opacity-80">

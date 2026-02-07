@@ -31,7 +31,7 @@ export function useBotTurns(
     }
 
     const currentPlayer = players[currentIndex];
-    if (!currentPlayer || !isBotPlayer(currentPlayer)) return;
+    if (!currentPlayer || !isBotPlayer(currentPlayer) || currentPlayer.forfeited) return;
 
     // Only the host should execute bot turns
     const isHost = players.find(p => p.id === playerId)?.isHost;

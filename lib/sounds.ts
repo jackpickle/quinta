@@ -105,3 +105,10 @@ export function playYourTurn() {
   playTone(587, 0.15, 'sine', 0.1); // D5
   setTimeout(() => playTone(784, 0.2, 'sine', 0.1), 120); // G5
 }
+
+/** Timer warning beep — progressively higher pitch at 15s, 10s, 5s */
+export function playTimerBeep(urgency: number) {
+  const frequencies = [440, 660, 880]; // A4, E5, A5
+  const volumes = [0.08, 0.10, 0.14];
+  playTone(frequencies[urgency] ?? 880, 0.12, 'sine', volumes[urgency] ?? 0.14);
+}

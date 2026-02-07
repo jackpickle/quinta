@@ -20,6 +20,8 @@ export interface Player {
   isHost: boolean;
   teamIndex?: number; // 0, 1, or 2 when teams enabled
   isBot?: boolean; // true for AI players
+  forfeited?: boolean; // true when player has forfeited or been AFK-removed
+  consecutiveTimeouts?: number; // count of consecutive timer-expired auto-passes
 }
 
 export interface Card {

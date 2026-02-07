@@ -206,25 +206,39 @@ function handleDrawCard(
 }
 
 /**
- * Advance to the next player.
+ * Find the next active (non-forfeited) player index.
+ * Used by advanceToNextPlayer and forfeitPlayer.
+ */
+export function findNextActivePlayerIndex(gameState: GameState): number {
+  const turnOrder = gameState.turnOrder;
+  if (turnOrder && turnOrder.length > 0) {
+    const currentPos = turnOrder.indexOf(gameState.currentPlayerIndex);
+    for (let i = 1; i <= turnOrder.length; i++) {
+      const nextPos = (currentPos + i) % turnOrder.length;
+      const candidateIndex = turnOrder[nextPos];
+      if (!gameState.players[candidateIndex].forfeited) return candidateIndex;
+    }
+    return gameState.currentPlayerIndex;
+  }
+
+  for (let i = 1; i <= gameState.players.length; i++) {
+    const nextIndex = (gameState.currentPlayerIndex + i) % gameState.players.length;
+    if (!gameState.players[nextIndex].forfeited) return nextIndex;
+  }
+  return gameState.currentPlayerIndex;
+}
+
+/**
+ * Advance to the next player, skipping forfeited players.
  * Uses turnOrder array if present (team mode), otherwise sequential.
  */
 function advanceToNextPlayer(gameState: GameState): GameState {
-  if (gameState.turnOrder && gameState.turnOrder.length > 0) {
-    // Team mode: find current position in turnOrder and advance
-    const currentPos = gameState.turnOrder.indexOf(gameState.currentPlayerIndex);
-    const nextPos = (currentPos + 1) % gameState.turnOrder.length;
-    return {
-      ...gameState,
-      currentPlayerIndex: gameState.turnOrder[nextPos]
-    };
-  }
+  const activePlayers = gameState.players.filter(p => !p.forfeited);
+  if (activePlayers.length <= 1) return gameState;
 
-  // FFA mode: simple sequential
-  const nextPlayerIndex = (gameState.currentPlayerIndex + 1) % gameState.players.length;
   return {
     ...gameState,
-    currentPlayerIndex: nextPlayerIndex
+    currentPlayerIndex: findNextActivePlayerIndex(gameState),
   };
 }
 

@@ -2,6 +2,7 @@ import { ref, update, get, push } from "firebase/database";
 import { database } from "./config";
 import { GameState, PlayerId, TurnAction, Card, TurnHistoryEntry } from "@/types";
 import { executeTurn, checkWinner } from "@/lib/game";
+import { findNextActivePlayerIndex } from "@/lib/game/turn";
 import {
   getAllPrivateHands,
   updateAllPrivateHands,
@@ -20,6 +21,7 @@ export async function executePlayerTurn(
   action: TurnAction,
   cardId?: string,
   targetNumber?: number,
+  options?: { isTimeout?: boolean },
 ): Promise<{
   success: boolean;
   error?: string;
@@ -95,6 +97,22 @@ export async function executePlayerTurn(
       const { hand: _hand, ...playerWithoutHand } = player;
       return { ...playerWithoutHand, hand: [] };
     });
+
+    // Update consecutiveTimeouts tracking
+    const turnPlayerIdx = playersWithoutHands.findIndex(p => p.id === playerId);
+    if (turnPlayerIdx !== -1) {
+      if (options?.isTimeout) {
+        playersWithoutHands[turnPlayerIdx] = {
+          ...playersWithoutHands[turnPlayerIdx],
+          consecutiveTimeouts: (playersWithoutHands[turnPlayerIdx].consecutiveTimeouts ?? 0) + 1,
+        };
+      } else {
+        playersWithoutHands[turnPlayerIdx] = {
+          ...playersWithoutHands[turnPlayerIdx],
+          consecutiveTimeouts: 0,
+        };
+      }
+    }
 
     // Prepare public state update
     const publicUpdate = {
@@ -268,12 +286,13 @@ export async function getGameSummary(roomCode: string): Promise<{
 }
 
 /**
- * Forfeit game (resign)
+ * Forfeit a player — marks them as forfeited, skips their turn,
+ * and ends the game if only one player/team remains.
  */
-export async function forfeitGame(
+export async function forfeitPlayer(
   roomCode: string,
   playerId: PlayerId,
-): Promise<{ success: boolean; error?: string }> {
+): Promise<{ success: boolean; error?: string; gameOver?: boolean; winner?: PlayerId }> {
   const roomRef = ref(database, `rooms/${roomCode}`);
 
   try {
@@ -283,19 +302,64 @@ export async function forfeitGame(
       return { success: false, error: "Game not found" };
     }
 
-    const gameState = snapshot.val() as GameState;
+    const data = snapshot.val();
+    const { privateHands: _privateHands, ...publicState } = data;
+    const gameState = publicState as GameState;
 
-    // Find another player to declare winner
-    const otherPlayer = gameState.players.find((p) => p.id !== playerId);
-
-    if (!otherPlayer) {
-      return { success: false, error: "No other players in game" };
+    const playerIndex = gameState.players.findIndex(p => p.id === playerId);
+    if (playerIndex === -1) {
+      return { success: false, error: "Player not found" };
     }
 
-    // End game with other player as winner
+    if (gameState.players[playerIndex].forfeited) {
+      return { success: true }; // already forfeited
+    }
+
+    // Mark player as forfeited
+    const updatedPlayers = gameState.players.map((p, i) =>
+      i === playerIndex ? { ...p, forfeited: true } : p
+    );
+
+    // If it's this player's turn, advance to next active player
+    let newCurrentIndex = gameState.currentPlayerIndex;
+    if (gameState.currentPlayerIndex === playerIndex) {
+      const tempState = { ...gameState, players: updatedPlayers };
+      newCurrentIndex = findNextActivePlayerIndex(tempState);
+    }
+
+    // Check win condition: is only one player/team left?
+    const activePlayers = updatedPlayers.filter(p => !p.forfeited);
+
+    if (activePlayers.length <= 1) {
+      const winnerId = activePlayers.length === 1 ? activePlayers[0].id : null;
+      await update(roomRef, {
+        players: updatedPlayers,
+        currentPlayerIndex: newCurrentIndex,
+        status: "finished",
+        winner: winnerId,
+      });
+      return { success: true, gameOver: true, winner: winnerId ?? undefined };
+    }
+
+    // Team mode: check if all active players share the same team
+    if (gameState.settings.teamsEnabled) {
+      const activeTeams = new Set(activePlayers.map(p => p.teamIndex));
+      if (activeTeams.size === 1) {
+        const winnerId = activePlayers[0].id;
+        await update(roomRef, {
+          players: updatedPlayers,
+          currentPlayerIndex: newCurrentIndex,
+          status: "finished",
+          winner: winnerId,
+        });
+        return { success: true, gameOver: true, winner: winnerId };
+      }
+    }
+
+    // Game continues
     await update(roomRef, {
-      status: "finished",
-      winner: otherPlayer.id,
+      players: updatedPlayers,
+      currentPlayerIndex: newCurrentIndex,
     });
 
     return { success: true };

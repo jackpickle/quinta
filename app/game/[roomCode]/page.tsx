@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useGameState } from "@/hooks/useGameState";
 import { usePlayerIdentity } from "@/hooks/usePlayerIdentity";
@@ -20,6 +20,10 @@ import { checkWinner } from "@/lib/game";
 import type { TurnAction } from "@/types/game";
 import { playChipPlace, playCardLift, playPass as playPassSound, playWin, playYourTurn } from "@/lib/sounds";
 import { useBotTurns } from "@/hooks/useBotTurns";
+import { useTurnTimer } from "@/hooks/useTurnTimer";
+import { TurnTimer } from "@/components/molecules/TurnTimer";
+import { ConfirmDialog } from "@/components/molecules/ConfirmDialog";
+import { forfeitPlayer } from "@/lib/firebase/game-actions";
 
 export default function GamePage() {
   const params = useParams();
@@ -37,6 +41,12 @@ export default function GamePage() {
 
   // Auto-play bot turns (only runs for host)
   useBotTurns(roomCode, gameState, playerId);
+
+  // Turn timer (30s countdown, auto-pass, AFK forfeit)
+  const { secondsRemaining, isRunning: timerRunning } = useTurnTimer(roomCode, gameState, playerId);
+
+  // Forfeit confirmation modal
+  const [showForfeitConfirm, setShowForfeitConfirm] = useState(false);
 
   // Track previous turn index to detect turn changes
   const prevTurnRef = useRef<number | null>(null);
@@ -98,6 +108,8 @@ export default function GamePage() {
 
   const currentPlayer = gameState.players[gameState.currentPlayerIndex];
   const isMyTurn = currentPlayer?.id === playerId;
+  const myPlayer = gameState.players.find(p => p.id === playerId);
+  const isForfeited = myPlayer?.forfeited ?? false;
 
   // Show all valid moves (Natural + Higher combined)
   const displayValidMoves = [...validMoves.natural, ...validMoves.higher];
@@ -144,6 +156,17 @@ export default function GamePage() {
     if (!isMyTurn) return;
     playPassSound();
     await executePlayerTurn(roomCode, playerId, "pass");
+    clearSelection();
+  };
+
+  const handleForfeit = () => {
+    if (isForfeited) return;
+    setShowForfeitConfirm(true);
+  };
+
+  const confirmForfeit = async () => {
+    setShowForfeitConfirm(false);
+    await forfeitPlayer(roomCode, playerId);
     clearSelection();
   };
 
@@ -208,13 +231,30 @@ export default function GamePage() {
           <TurnLog entries={gameState.turnHistory || []} />
         </div>
 
-        {/* Board container */}
-        <div className="flex-1 flex items-center justify-center p-2 md:p-4 min-h-0">
-          <GameBoard
-            board={gameState.board}
-            validMoves={displayValidMoves}
-            onCellClick={handleCellClick}
-            disabled={!isMyTurn || !selectedCardId}
+        {/* Board column */}
+        <div className="flex-1 flex flex-col min-h-0 relative">
+          <TurnTimer
+            secondsRemaining={secondsRemaining}
+            isRunning={timerRunning}
+            playerColor={currentPlayer?.color}
+          />
+          <div className="flex-1 flex items-center justify-center p-2 md:p-4 min-h-0">
+            <GameBoard
+              board={gameState.board}
+              validMoves={displayValidMoves}
+              onCellClick={handleCellClick}
+              disabled={!isMyTurn || !selectedCardId}
+            />
+          </div>
+
+          <ConfirmDialog
+            isOpen={showForfeitConfirm}
+            title="Forfeit game?"
+            message="Your chips will remain on the board, but you won't be able to take any more turns."
+            confirmLabel="Forfeit"
+            cancelLabel="Keep playing"
+            onConfirm={confirmForfeit}
+            onCancel={() => setShowForfeitConfirm(false)}
           />
         </div>
 
@@ -224,9 +264,12 @@ export default function GamePage() {
           selectedCardId={selectedCardId}
           onCardSelect={(cardId: string) => { playCardLift(); selectCard(cardId); }}
           onPass={handlePass}
+          onForfeit={handleForfeit}
           disabled={!isMyTurn}
+          isForfeited={isForfeited}
           playerColor={currentPlayer?.color}
           maxCards={gameState.settings.handSize}
+          consecutiveTimeouts={myPlayer?.consecutiveTimeouts ?? 0}
         />
       </div>
     </div>
