@@ -17,6 +17,7 @@ export interface LobbyState {
     color: ChipColor | null; // null = not selected yet
     isHost: boolean;
     isReady: boolean;
+    isBot?: boolean;
   }>;
   createdAt: number;
   teamColors?: (ChipColor | null)[]; // color per team [team0, team1, team2]
@@ -272,9 +273,9 @@ export function canStartGame(lobbyState: LobbyState): {
     }
   }
 
-  // All non-host players must be ready
+  // All non-host, non-bot players must be ready (bots are always ready)
   const allReady = lobbyState.players
-    .filter(p => !p.isHost)
+    .filter(p => !p.isHost && !p.isBot)
     .every(p => p.isReady);
 
   if (!allReady && lobbyState.players.length > 1) {
@@ -316,22 +317,24 @@ export async function startGameFromLobby(
 
     // Convert lobby players to game players
     const gamePlayers = lobbyState.players.map(p => {
+      const base = {
+        id: p.id,
+        name: p.name,
+        isHost: p.isHost,
+        ...(p.isBot ? { isBot: true } : {}),
+      };
       if (lobbyState.settings.teamsEnabled) {
         const teamIdx = lobbyState.teams?.[p.id] ?? 0;
         const teamColor = lobbyState.teamColors?.[teamIdx] ?? 'coral';
         return {
-          id: p.id,
-          name: p.name,
+          ...base,
           color: teamColor as ChipColor,
-          isHost: p.isHost,
           teamIndex: teamIdx
         };
       }
       return {
-        id: p.id,
-        name: p.name,
+        ...base,
         color: p.color!,
-        isHost: p.isHost
       };
     });
 
@@ -576,7 +579,8 @@ export async function resetToLobby(
       name: p.name,
       color: p.color || null,
       isHost: p.isHost,
-      isReady: false, // Reset ready state
+      isReady: p.isBot ? true : false,
+      ...(p.isBot ? { isBot: true } : {}),
     }));
 
     // Create fresh lobby state

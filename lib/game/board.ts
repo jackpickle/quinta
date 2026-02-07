@@ -178,5 +178,5 @@ export function getCellByNumber(board: BoardCell[][], number: number): BoardCell
  */
 export function isCellOccupied(board: BoardCell[][], number: number): boolean {
   const cell = getCellByNumber(board, number);
-  return cell ? cell.chip !== null : false;
+  return cell ? !!cell.chip : false;
 }

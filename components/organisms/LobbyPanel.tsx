@@ -35,6 +35,9 @@ interface LobbyPanelProps {
   teamColors?: (ChipColor | null)[];
   onAssignPlayerToTeam?: (playerId: string, teamIndex: number | null) => void;
   onSelectTeamColor?: (teamIndex: number, color: ChipColor) => void;
+  // Bot props
+  onAddBot?: () => void;
+  onRemoveBot?: (botId: string) => void;
 }
 
 function TeamAssignmentUI({
@@ -177,6 +180,8 @@ export function LobbyPanel({
   teamColors,
   onAssignPlayerToTeam,
   onSelectTeamColor,
+  onAddBot,
+  onRemoveBot,
 }: LobbyPanelProps) {
   const currentPlayer = players.find((p) => p.id === currentPlayerId);
   const takenColors = players
@@ -218,8 +223,20 @@ export function LobbyPanel({
             players={players}
             currentPlayerId={currentPlayerId}
             maxPlayers={settings.maxPlayers}
+            isHost={isHost}
+            onRemoveBot={onRemoveBot}
           />
         </div>
+
+        {isHost && onAddBot && players.length < settings.maxPlayers && (
+          <Button
+            variant="ghost"
+            className="w-full mb-2"
+            onClick={onAddBot}
+          >
+            + Add Bot
+          </Button>
+        )}
 
         {isHost && (
           <SettingsPanel

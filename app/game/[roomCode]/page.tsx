@@ -19,6 +19,7 @@ import { resetToLobby } from "@/lib/firebase/lobby";
 import { checkWinner } from "@/lib/game";
 import type { TurnAction } from "@/types/game";
 import { playChipPlace, playCardLift, playPass as playPassSound, playWin, playYourTurn } from "@/lib/sounds";
+import { useBotTurns } from "@/hooks/useBotTurns";
 
 export default function GamePage() {
   const params = useParams();
@@ -33,6 +34,9 @@ export default function GamePage() {
 
   // Initialize presence tracking
   usePresence(roomCode, playerId);
+
+  // Auto-play bot turns (only runs for host)
+  useBotTurns(roomCode, gameState, playerId);
 
   // Track previous turn index to detect turn changes
   const prevTurnRef = useRef<number | null>(null);

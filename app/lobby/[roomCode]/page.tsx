@@ -16,6 +16,7 @@ import {
   assignPlayerToTeam,
   selectTeamColor,
 } from "@/lib/firebase/lobby";
+import { addBotToLobby, removeBotFromLobby } from "@/lib/firebase/bot-player";
 import type { ChipColor, GameSettings } from "@/types/game";
 import { playButtonClick } from "@/lib/sounds";
 
@@ -90,6 +91,16 @@ export default function LobbyPage() {
     await selectTeamColor(roomCode, playerId, teamIndex, color);
   };
 
+  const handleAddBot = async () => {
+    playButtonClick();
+    await addBotToLobby(roomCode, playerId);
+  };
+
+  const handleRemoveBot = async (botId: string) => {
+    playButtonClick();
+    await removeBotFromLobby(roomCode, playerId, botId);
+  };
+
   return (
     <LobbyPanel
       roomCode={roomCode}
@@ -107,6 +118,8 @@ export default function LobbyPage() {
       teamColors={lobbyState.teamColors}
       onAssignPlayerToTeam={handleAssignPlayerToTeam}
       onSelectTeamColor={handleSelectTeamColor}
+      onAddBot={handleAddBot}
+      onRemoveBot={handleRemoveBot}
     />
   );
 }

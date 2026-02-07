@@ -19,6 +19,7 @@ export interface Player {
   hand: Card[];
   isHost: boolean;
   teamIndex?: number; // 0, 1, or 2 when teams enabled
+  isBot?: boolean; // true for AI players
 }
 
 export interface Card {
