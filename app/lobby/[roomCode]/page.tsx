@@ -15,6 +15,7 @@ import {
   canStartGame,
 } from "@/lib/firebase/lobby";
 import type { ChipColor, GameSettings } from "@/types/game";
+import { playButtonClick } from "@/lib/sounds";
 
 export default function LobbyPage() {
   const params = useParams();
@@ -53,10 +54,12 @@ export default function LobbyPage() {
   const { canStart } = canStartGame(lobbyState);
 
   const handleColorSelect = async (color: ChipColor) => {
+    playButtonClick();
     await selectColor(roomCode, playerId, color);
   };
 
   const handleToggleReady = async () => {
+    playButtonClick();
     await toggleReady(roomCode, playerId);
   };
 
@@ -65,10 +68,12 @@ export default function LobbyPage() {
   };
 
   const handleStartGame = async () => {
+    playButtonClick();
     await startGameFromLobby(roomCode, playerId);
   };
 
   const handleLeave = async () => {
+    playButtonClick();
     await leaveLobby(roomCode, playerId);
     router.push("/");
   };

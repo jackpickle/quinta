@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useGameState } from "@/hooks/useGameState";
 import { usePlayerIdentity } from "@/hooks/usePlayerIdentity";
@@ -18,6 +18,7 @@ import { executePlayerTurn } from "@/lib/firebase/game-actions";
 import { resetToLobby } from "@/lib/firebase/lobby";
 import { checkWinner } from "@/lib/game";
 import type { TurnAction } from "@/types/game";
+import { playChipPlace, playCardLift, playPass as playPassSound, playWin, playYourTurn } from "@/lib/sounds";
 
 export default function GamePage() {
   const params = useParams();
@@ -32,6 +33,31 @@ export default function GamePage() {
 
   // Initialize presence tracking
   usePresence(roomCode, playerId);
+
+  // Track previous turn index to detect turn changes
+  const prevTurnRef = useRef<number | null>(null);
+
+  // Sound: your turn notification
+  const currentTurnIndex = gameState?.currentPlayerIndex ?? null;
+  const gameStatus = gameState?.status;
+  const currentTurnPlayerId = gameState?.players[gameState?.currentPlayerIndex ?? 0]?.id;
+
+  useEffect(() => {
+    if (gameStatus !== 'playing' || currentTurnIndex === null) return;
+    const prevTurn = prevTurnRef.current;
+    prevTurnRef.current = currentTurnIndex;
+    if (prevTurn === null) return;
+    if (prevTurn !== currentTurnIndex && currentTurnPlayerId === playerId) {
+      playYourTurn();
+    }
+  }, [currentTurnIndex, gameStatus, currentTurnPlayerId, playerId]);
+
+  // Sound: win celebration
+  useEffect(() => {
+    if (gameState?.status === 'finished' && gameState.winner) {
+      playWin();
+    }
+  }, [gameState?.status, gameState?.winner]);
 
   // Redirect to lobby if game was reset
   useEffect(() => {
@@ -105,12 +131,14 @@ export default function GamePage() {
     );
     
     console.log('📥 Turn result:', result);
-    
+
+    if (result.success) playChipPlace();
     clearSelection();
   };
 
   const handlePass = async () => {
     if (!isMyTurn) return;
+    playPassSound();
     await executePlayerTurn(roomCode, playerId, "pass");
     clearSelection();
   };
@@ -179,7 +207,7 @@ export default function GamePage() {
         <Sidebar
           hand={hand}
           selectedCardId={selectedCardId}
-          onCardSelect={selectCard}
+          onCardSelect={(cardId: string) => { playCardLift(); selectCard(cardId); }}
           onPass={handlePass}
           disabled={!isMyTurn}
           playerColor={currentPlayer?.color}

@@ -8,6 +8,7 @@ import { HowToPlayModal } from "@/components/organisms/HowToPlayModal";
 import { PasswordGate } from "@/components/organisms/PasswordGate";
 import { createLobby, joinLobby } from "@/lib/firebase/lobby";
 import { getPlayerId, savePlayerName } from "@/lib/firebase/player-identity";
+import { playButtonClick } from "@/lib/sounds";
 
 export default function HomePage() {
   const router = useRouter();
@@ -109,21 +110,21 @@ export default function HomePage() {
             <Button
               variant="secondary"
               className="w-full animate-fade-in-delay-1"
-              onClick={() => setShowCreateForm(true)}
+              onClick={() => { playButtonClick(); setShowCreateForm(true); }}
             >
               Create Game
             </Button>
             <Button
               variant="secondary"
               className="w-full animate-fade-in-delay-2"
-              onClick={() => setShowJoinForm(true)}
+              onClick={() => { playButtonClick(); setShowJoinForm(true); }}
             >
               Join Game
             </Button>
             <Button
               variant="ghost"
               className="w-full animate-fade-in-delay-3"
-              onClick={() => setShowHowToPlay(true)}
+              onClick={() => { playButtonClick(); setShowHowToPlay(true); }}
             >
               How to Play
             </Button>
